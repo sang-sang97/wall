@@ -88,8 +88,34 @@ window.addEventListener("load", () => {
         debug: false,
       },
     },
+    scale: {
+      mode: Phaser.Scale.FIT, // 화면에 맞게 조정 (비율 유지)
+      autoCenter: Phaser.Scale.CENTER_BOTH, // 중앙 정렬
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+      min: {
+        width: GAME_WIDTH * 0.5,
+        height: GAME_HEIGHT * 0.5,
+      },
+      max: {
+        width: GAME_WIDTH * 2,
+        height: GAME_HEIGHT * 2,
+      },
+    },
     scene: [BootScene, MenuScene, GameScene, ResultScene, DailyDungeonScene, GoldDungeonScene],
   };
 
-  new Phaser.Game(config);
+  const game = new Phaser.Game(config);
+  
+  // 화면 회전 감지 및 재조정
+  window.addEventListener("orientationchange", () => {
+    setTimeout(() => {
+      game.scale.refresh();
+    }, 100);
+  });
+  
+  // 리사이즈 감지
+  window.addEventListener("resize", () => {
+    game.scale.refresh();
+  });
 });
