@@ -9,12 +9,21 @@ class ResultScene extends Phaser.Scene {
     this.rewardExp = data.rewardExp ?? 0;
     this.rewardGold = data.rewardGold ?? 0;
     this.stageLevel = data.stageLevel || 1;
+    this.isDailyDungeon = data.isDailyDungeon || false;
+    this.isGoldDungeon = data.isGoldDungeon || false;
+    this.destroyedWalls = data.destroyedWalls || 0;
+    this.totalScore = data.totalScore || 0;
   }
 
   create() {
     const { width, height } = this.scale;
 
-    const title = this.isClear ? "CLEAR!" : "FAILED";
+    let title = this.isClear ? "CLEAR!" : "FAILED";
+    if (this.isDailyDungeon) {
+      title = "경험치 던전 완료!";
+    } else if (this.isGoldDungeon) {
+      title = "골드 던전 완료!";
+    }
     const titleColor = this.isClear ? "#4caf50" : "#e53935";
 
     this.add
@@ -24,11 +33,24 @@ class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const summaryLines = [
-      `소요 시간: ${this.timeUsed.toFixed(1)}초`,
-      `획득 경험치: ${this.rewardExp}`,
-      `획득 골드: ${this.rewardGold}`,
-    ];
+    let summaryLines = [];
+    if (this.isDailyDungeon) {
+      summaryLines = [
+        `부순 벽: ${this.destroyedWalls} / 30`,
+        `획득 경험치: ${this.rewardExp}`,
+      ];
+    } else if (this.isGoldDungeon) {
+      summaryLines = [
+        `총 점수: ${Math.round(this.totalScore)}`,
+        `획득 골드: ${this.rewardGold}`,
+      ];
+    } else {
+      summaryLines = [
+        `소요 시간: ${this.timeUsed.toFixed(1)}초`,
+        `획득 경험치: ${this.rewardExp}`,
+        `획득 골드: ${this.rewardGold}`,
+      ];
+    }
 
     const gameData = window.GameData || null;
     if (gameData) {
@@ -49,8 +71,8 @@ class ResultScene extends Phaser.Scene {
         gameData.skillPoints += levelUps;
       }
 
-      // 스테이지 해금 (클리어 시에만)
-      if (this.isClear) {
+      // 스테이지 해금 (일반 스테이지만, 클리어 시에만)
+      if (this.isClear && !this.isDailyDungeon && !this.isGoldDungeon) {
         const nextStage = this.stageLevel + 1;
         if (!gameData.highestUnlockedStage) {
           gameData.highestUnlockedStage = 1;
@@ -92,7 +114,15 @@ class ResultScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     retryText.on("pointerup", () => {
-      this.scene.start("GameScene", { stageLevel: this.stageLevel });
+      if (this.isDailyDungeon) {
+        const gameData = window.GameData;
+        const expDungeonLevel = gameData?.dailyDungeon?.expDungeonLevel || 1;
+        this.scene.start("DailyDungeonScene", { level: expDungeonLevel });
+      } else if (this.isGoldDungeon) {
+        this.scene.start("GoldDungeonScene");
+      } else {
+        this.scene.start("GameScene", { stageLevel: this.stageLevel });
+      }
     });
 
     menuText.on("pointerup", () => {

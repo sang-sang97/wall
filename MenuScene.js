@@ -15,7 +15,8 @@ class MenuScene extends Phaser.Scene {
         skillPoints: 0,
       };
   
-      this.add
+      // 재화 표시 텍스트 (업데이트 가능하도록 저장)
+      this.statsText = this.add
         .text(
           40,
           40,
@@ -26,6 +27,14 @@ class MenuScene extends Phaser.Scene {
           }
         )
         .setOrigin(0, 0);
+      
+      // 재화 업데이트 함수
+      this.updateStatsText = () => {
+        if (this.statsText && window.GameData) {
+          const gd = window.GameData;
+          this.statsText.setText(`Lv.${gd.level}\nSP: ${gd.skillPoints}\nEXP: ${gd.exp} / ${gd.expToNext}\nGOLD: ${gd.gold}`);
+        }
+      };
   
       // 스테이지 선택
       this.highestUnlockedStage = gameData.highestUnlockedStage || 1;
@@ -126,8 +135,14 @@ class MenuScene extends Phaser.Scene {
             this.openUpgradePopup();
           } else if (label === "스킬") {
             this.openSkillPopup();
+          } else if (label === "일일던전") {
+            this.openDailyDungeonPopup();
           } else {
-            this.showComingSoon(label);
+            if (label === "일일던전") {
+        this.openDailyDungeonPopup();
+      } else {
+        this.showComingSoon(label);
+      }
           }
         });
       });
@@ -141,7 +156,7 @@ class MenuScene extends Phaser.Scene {
         const expReward = 50 * this.currentStage;
         const goldReward = 30 * this.currentStage;
         this.stageRewardText.setText(
-          `예상 보상: EXP ${expReward} / GOLD ${goldReward}`
+          `보상: EXP ${expReward} / GOLD ${goldReward}`
         );
       }
     }
@@ -248,6 +263,8 @@ class MenuScene extends Phaser.Scene {
                 ? `${label}: ${10 + updated} → ${10 + updatedNext}   (비용: ${cost}G)`
                 : `${label}: ${updated}% → ${updatedNext}%   (비용: ${cost}G)`;
             text.setText(updatedLabel);
+            // 재화 즉시 반영
+            if (this.updateStatsText) this.updateStatsText();
           }
         });
   
@@ -397,14 +414,14 @@ class MenuScene extends Phaser.Scene {
             if (gameData.skillPoints > 0) {
               if (def.key === "doubleJump" && level >= def.maxLevel) return;
               if (def.key !== "doubleJump" && level >= def.maxLevel) return;
-  
+
               gameData.skillPoints -= 1;
               gameData.skills[def.key] = (gameData.skills[def.key] || 0) + 1;
               if (window.saveGameData) window.saveGameData();
               const newLevel = gameData.skills[def.key];
-  
+
               levelText.setText(`${def.label}  ${newLevel}/${def.maxLevel}`);
-  
+
               if (def.key === "doubleJump") {
                 previewText.setText("최대 레벨입니다.");
                 btn.destroy();
@@ -416,6 +433,9 @@ class MenuScene extends Phaser.Scene {
                   previewText.setText("다음 레벨: 공격력 추가 +5%");
                 }
               }
+              
+              // 재화 즉시 반영
+              if (this.updateStatsText) this.updateStatsText();
             }
           });
         }
@@ -470,6 +490,161 @@ class MenuScene extends Phaser.Scene {
         this.scene.restart();
       };
   
+      closeText.on("pointerup", close);
+      this.input.keyboard.once("keydown-ESC", close);
+    }
+
+    openDailyDungeonPopup() {
+      const { width, height } = this.scale;
+      const gameData = window.GameData;
+      if (!gameData) return;
+
+      const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
+      const box = this.add.rectangle(width / 2, height / 2, 500, 300, 0x263238, 0.95);
+      box.setStrokeStyle(2, 0xffffff);
+
+      const title = this.add
+        .text(width / 2, height / 2 - 100, "일일 던전", {
+          fontSize: "24px",
+          color: "#ffffff",
+        })
+        .setOrigin(0.5);
+
+      // 한국 시간 기준 오늘 날짜 확인 (00:00 초기화)
+      const now = new Date();
+      const koreaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+      const today = koreaTime.toISOString().split("T")[0]; // "YYYY-MM-DD"
+      
+      const lastExpDate = gameData.dailyDungeon?.lastExpDungeonDate;
+      const lastGoldDate = gameData.dailyDungeon?.lastGoldDungeonDate;
+      const canPlayExp = lastExpDate !== today;
+      const canPlayGold = lastGoldDate !== today;
+
+      const expDungeonLevel = gameData.dailyDungeon?.expDungeonLevel || 1;
+      
+      // 도전 가능 횟수 (일일 1회 + 입장권 개수)
+      const expDungeonTickets = (canPlayExp ? 1 : 0) + (gameData.dailyDungeon?.expDungeonTickets || 0);
+      const goldDungeonTickets = (canPlayGold ? 1 : 0) + (gameData.dailyDungeon?.goldDungeonTickets || 0);
+
+      // closeText를 먼저 선언 (다른 곳에서 참조하기 전에)
+      const closeText = this.add
+        .text(width / 2, height / 2 + 100, "닫기 (ESC)", {
+          fontSize: "16px",
+          color: "#cccccc",
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+
+      // 경험치 던전 버튼
+      const expDungeonBtn = this.add
+        .text(width / 2, height / 2 - 20, `경험치 던전 (레벨 ${expDungeonLevel}) 🔑 ${expDungeonTickets}`, {
+          fontSize: "18px",
+          color: "#ffffff",
+          backgroundColor: expDungeonTickets > 0 ? "#2e7d32" : "#666666",
+          padding: { x: 15, y: 8 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: expDungeonTickets > 0 });
+
+      if (expDungeonTickets > 0) {
+        expDungeonBtn.on("pointerup", () => {
+          overlay.destroy();
+          box.destroy();
+          title.destroy();
+          expDungeonBtn.destroy();
+          goldDungeonBtn.destroy();
+          closeText.destroy();
+          if (infoText) infoText.destroy();
+          
+          // 입장권 사용 또는 일일 제한 적용
+          gameData.dailyDungeon = gameData.dailyDungeon || {};
+          if (canPlayExp) {
+            // 일일 제한 사용
+            gameData.dailyDungeon.lastExpDungeonDate = today;
+          } else {
+            // 입장권 사용
+            gameData.dailyDungeon.expDungeonTickets = Math.max(0, (gameData.dailyDungeon.expDungeonTickets || 0) - 1);
+          }
+          if (window.saveGameData) window.saveGameData();
+          
+          this.scene.start("DailyDungeonScene", { level: expDungeonLevel });
+        });
+      }
+
+      // 골드 던전 버튼
+      const goldDungeonBtn = this.add
+        .text(width / 2, height / 2 + 40, `골드 던전 🔑 ${goldDungeonTickets}`, {
+          fontSize: "18px",
+          color: "#ffffff",
+          backgroundColor: goldDungeonTickets > 0 ? "#f57c00" : "#666666",
+          padding: { x: 15, y: 8 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: goldDungeonTickets > 0 });
+
+      let infoText = null;
+      if (goldDungeonTickets > 0) {
+        goldDungeonBtn.on("pointerup", () => {
+          overlay.destroy();
+          box.destroy();
+          title.destroy();
+          expDungeonBtn.destroy();
+          goldDungeonBtn.destroy();
+          closeText.destroy();
+          if (infoText) infoText.destroy();
+          
+          // 입장권 사용 또는 일일 제한 적용
+          gameData.dailyDungeon = gameData.dailyDungeon || {};
+          if (canPlayGold) {
+            // 일일 제한 사용
+            gameData.dailyDungeon.lastGoldDungeonDate = today;
+          } else {
+            // 입장권 사용
+            gameData.dailyDungeon.goldDungeonTickets = Math.max(0, (gameData.dailyDungeon.goldDungeonTickets || 0) - 1);
+          }
+          if (window.saveGameData) window.saveGameData();
+          
+          this.scene.start("GoldDungeonScene");
+        });
+      }
+      
+      // 정보 텍스트
+      if (!canPlayExp && !canPlayGold) {
+        infoText = this.add
+          .text(width / 2, height / 2 + 70, "오늘 이미 모든 던전을 플레이했습니다.", {
+            fontSize: "14px",
+            color: "#ff9800",
+          })
+          .setOrigin(0.5);
+        closeText.y = height / 2 + 110;
+      } else if (!canPlayExp) {
+        infoText = this.add
+          .text(width / 2, height / 2 + 70, "경험치 던전은 오늘 이미 플레이했습니다.", {
+            fontSize: "14px",
+            color: "#ff9800",
+          })
+          .setOrigin(0.5);
+        closeText.y = height / 2 + 110;
+      } else if (!canPlayGold) {
+        infoText = this.add
+          .text(width / 2, height / 2 + 70, "골드 던전은 오늘 이미 플레이했습니다.", {
+            fontSize: "14px",
+            color: "#ff9800",
+          })
+          .setOrigin(0.5);
+        closeText.y = height / 2 + 110;
+      }
+
+      const close = () => {
+        overlay.destroy();
+        box.destroy();
+        title.destroy();
+        expDungeonBtn.destroy();
+        goldDungeonBtn.destroy();
+        closeText.destroy();
+        if (infoText) infoText.destroy();
+      };
+
       closeText.on("pointerup", close);
       this.input.keyboard.once("keydown-ESC", close);
     }

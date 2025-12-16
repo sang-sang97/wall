@@ -26,6 +26,13 @@ function createDefaultGameData() {
       doubleAttack: "S",
       tripleAttack: "D",
     },
+    dailyDungeon: {
+      expDungeonLevel: 1,
+      lastExpDungeonDate: null, // "YYYY-MM-DD" 형식
+      lastGoldDungeonDate: null, // "YYYY-MM-DD" 형식
+      expDungeonTickets: 0, // 입장권 개수
+      goldDungeonTickets: 0, // 입장권 개수
+    },
   };
 }
 
@@ -81,7 +88,7 @@ window.addEventListener("load", () => {
         debug: false,
       },
     },
-    scene: [BootScene, MenuScene, GameScene, ResultScene],
+    scene: [BootScene, MenuScene, GameScene, ResultScene, DailyDungeonScene, GoldDungeonScene],
   };
 
   new Phaser.Game(config);
