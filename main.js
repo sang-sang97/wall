@@ -89,7 +89,7 @@ window.addEventListener("load", () => {
       },
     },
     scale: {
-      mode: Phaser.Scale.FIT, // 화면에 맞게 조정 (비율 유지)
+      mode: Phaser.Scale.RESIZE, // 화면에 맞게 조정 (비율 유지)
       autoCenter: Phaser.Scale.CENTER_BOTH, // 중앙 정렬
       width: GAME_WIDTH,
       height: GAME_HEIGHT,
