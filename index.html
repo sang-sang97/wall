@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wall Breaker Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background-color: #0a0a0a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+    
+    #game-root {
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div id="game-root"></div>
+  
+  <!-- Phaser 3 라이브러리 -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+  
+  <!-- 게임 스크립트들 -->
+  <script src="BootScene.js"></script>
+  <script src="MenuScene.js"></script>
+  <script src="GameScene.js"></script>
+  <script src="ResultScene.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
